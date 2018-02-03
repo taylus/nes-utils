@@ -52,20 +52,28 @@ namespace NesRomWriter
         }
 
         /// <summary>
-        /// Returns the program ROM for the most simplistic NES ROM imaginable --
-        /// it infinitely loops loading the constant 1 into the CPU's accumulator.
-        /// (You have to use an emulator's debugger to even see that it's doing anything.)
+        /// Returns a program ROM which instructs the NES's audio processing unit
+        /// to play a tone by writing to its memory-mapped registers:
+        /// https://wiki.nesdev.com/w/index.php/APU#Registers
         /// </summary>
+        /// <see>https://wiki.nesdev.com/w/index.php/Programming_Basics#.22Hello.2C_world.21.22_program</see>
         private static byte[] WritePrgRom(byte bankCount)
         {
             ///the NES loads PRG ROM into address $8000 when it boots:
             //https://en.wikibooks.org/wiki/NES_Programming/Memory_Map
             var assembly = new byte[]
             {
-                0xA9, 0x01,         //8000: LDA #$01
-                0x4C, 0x00, 0x80    //8002: JMP $8000
-                //zero fill...      //8005: BRK
-                //...
+                0xA9, 0x01,         //8000: LDA #$01    
+                0x8D, 0x15, 0x40,   //8002: STA $4015   (turn on square wave #1)
+                0xA9, 0xE5,         //8005: LDA #$E5
+                0x8D, 0x01, 0x40,   //8007: STA $4001   (set length counter)
+                0xA9, 0x33,         //800A: LDA #$33
+                0x8D, 0x02, 0x40,   //800C: STA $4002   (set timer low bits - controls pitch)
+                0xA9, 0x02,         //800F: LDA #$02
+                0x8D, 0x03, 0x40,   //8011: STA $4003   (set timer high bits - controls pitch)
+                0xA9, 0xA2,         //8014: LDA #$A2
+                0x8D, 0x00, 0x40,   //8016: STA $4000   (set volume)
+                0x4C, 0x19, 0x80    //8019: JMP $8019   (infinite loop)
             };
 
             //special "interrupt vectors" are expected at the end of addressable memory ($FFFA-FFFF)
